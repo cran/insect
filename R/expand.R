@@ -5,7 +5,7 @@
 #'   created, or if fine-scale control over the tree-learning operation
 #'   is required.
 #'   Note that the same reference sequence database used to
-#'   build the original tree is required for the second argument.
+#'   build the original tree is required.
 #'
 #' @param tree an object of class \code{"insect"}.
 #' @param clades a vector of character strings giving the binary indices
@@ -30,8 +30,9 @@
 #' @examples
 #' \donttest{
 #'   data(whales)
+#'   data(whale_taxonomy)
 #'   ## split the first node
-#'   tree <- learn(whales, recursive = FALSE, quiet = FALSE)
+#'   tree <- learn(whales, db = whale_taxonomy, recursive = FALSE, quiet = FALSE)
 #'   ## expand only the first clade
 #'   tree <- expand(tree, whales, clades = "1", quiet = TRUE)
 #'  }
@@ -40,7 +41,16 @@ expand <- function(tree, x, clades = "0", refine = "Viterbi", iterations = 50,
                    nstart = 20, minK = 2, maxK = 2, minscore = 0.9, probs = 0.5,
                    retry = TRUE, resize = TRUE, maxsize = max(sapply(x, length)),
                    recursive = TRUE, cores = 1, quiet = TRUE, ...){
-  ## Establish which parts fof the tree to expand
+  ## Establish which parts of the tree to expand
+  if(mode(x) == "character") x <- char2dna(x)
+  if(!grepl("\\|", names(x)[1])){
+    stop("Names of input sequences must include taxonomic ID numbers\n")
+  }
+  taxIDs <- as.integer(gsub(".+\\|", "", names(x)))
+  lineages <- get_lineage(taxIDs, db = attr(tree, "taxonomy"),
+                          cores = cores, numbers = TRUE)
+  lineages <- vapply(lineages, paste0, "", collapse = "; ")
+  # attr(x, "lineage") <- lineages
   clades <- gsub("0", "", clades)
   if(!(identical(attr(tree, "sequences"), seq_along(x)))){
     stop("tree is incompatible with sequences\n")
@@ -89,7 +99,7 @@ expand <- function(tree, x, clades = "0", refine = "Viterbi", iterations = 50,
   # attr(tree, "weights") <- NULL ## replaced later
   # lineages <- gsub("\\.$", "", attr(x, "lineage"))
   # lineages <- paste0(lineages, "; ", attr(x, "species"))
-  lineages <- attr(x, "lineage")
+  # lineages <- attr(x, "lineage")
   # lineages <- paste0(lineages, "; ~", attr(x, "species"), "~")
   x <- x[!duplicates]# strip attrs regardless of duplicates
   if(any(duplicates)){
@@ -259,22 +269,21 @@ expand <- function(tree, x, clades = "0", refine = "Viterbi", iterations = 50,
   }
   if(!quiet) cat("Repatriating duplicate sequences with tree\n")
   tree <- dendrapply(tree, reduplicate, pointers = pointers)
-  # rmaligs <- function(node){
-  #   if(is.leaf(node)) attr(node, "model")$alignment <- NULL
-  #   return(node)
-  # }
-  # tree <- dendrapply(tree, rmaligs) # more memory efficient
   encodemods <- function(node){
     if(is.leaf(node)) attr(node, "model") <- encodePHMM(attr(node, "model"))
     return(node)
   }
   tree <- dendrapply(tree, encodemods) # more memory efficient
+  truncatetaxIDs <- function(node){
+    attr(node, "taxID") <- as.integer(gsub(".+; ", "", attr(node, "lineage")))
+    attr(node, "lineage") <- NULL
+    return(node)
+  }
+  tree <- dendrapply(tree, truncatetaxIDs) # more memory efficient
   #if(has_duplicates) x <- fullseqset
   # attributes(x) <- tmpxattr
   if(!quiet) cat("Resetting node heights\n")
   tree <- phylogram::reposition(tree)
-  if(!quiet) cat("Making tree ultrametric\n")
-  tree <- phylogram::ultrametricize(tree)
   if(!quiet) cat("Done\n")
   class(tree) <- c("insect", "dendrogram")
   return(tree)
