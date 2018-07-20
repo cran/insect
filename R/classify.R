@@ -100,9 +100,9 @@
 #' \donttest{
 #'   data(whales)
 #'   data(whale_taxonomy)
-#'   ## use sequences 2-19 to train the classifier
+#'   ## use all sequences except first one to train the classifier
 #'   set.seed(999)
-#'   tree <- learn(whales[2:19], db = whale_taxonomy, maxiter = 5, cores = 2)
+#'   tree <- learn(whales[-1], db = whale_taxonomy, maxiter = 5, cores = 2)
 #'   ## find predicted lineage for first sequence
 #'   classify(whales[1], tree)
 #'   ## compare with actual lineage
@@ -113,26 +113,28 @@
 classify <- function(x, tree, threshold = 0.9, decay = TRUE, ping = TRUE,
                      ranks = c("phylum", "class", "order", "family", "genus", "species"),
                      cores = 1){
+  if(is.null(names(x))) names(x) <- paste0("S", seq_along(x))
   if(mode(x) == "character") x <- char2dna(x, simplify = FALSE)
   if(!is.list(x)){
     if(!mode(x) == "raw") stop("Unrecognized format for x\n")
-    nam <- deparse(substitute(x))
+    nam <- "S1"# deparse(substitute(x))
     x <- list(x)
     names(x) <- nam
     class(x) <- "DNAbin"
   }
-  sampnames <- if(all(grepl("_", names(x)))){
+  origins <- if(all(grepl("_", names(x)))){
     gsub("_.+", "", names(x))
   }else{
     rep("sample1", length(x))
   }
-  hashes <- unname(hash(x, cores = cores))
+  usm <- unique(origins)
+  origins <- factor(origins, levels = usm)
+  ## very important to specify ordering!
+  hashes <- hash(x)
   duplicates <- duplicated(hashes)
   x <- x[!duplicates]
   uhashes <- hashes[!duplicates]
-  indices <- split(match(hashes, uhashes), f = sampnames)
-  #hashtab <- table(hashes)
-  usm <- unique(sampnames)
+  indices <- split(match(hashes, uhashes), f = origins)
   qout <- matrix(NA_integer_, nrow = sum(!duplicates), ncol = length(usm))
   colnames(qout) <- usm
   for(i in seq_along(usm)) qout[, i] <- tabulate(indices[[i]], nbins = length(x))
@@ -239,7 +241,8 @@ classify <- function(x, tree, threshold = 0.9, decay = TRUE, ping = TRUE,
   lhcols <- data.frame(representative = names(x),
                      taxID = res$taxID,
                      taxon = tmp,
-                     rank = names(tmp))
+                     rank = names(tmp),
+                     stringsAsFactors = FALSE)
   if(!is.null(ranks)){
     rnkmat <- matrix(NA_character_, nrow = length(x), ncol = length(ranks))
     rnkmat <- as.data.frame(rnkmat, stringsAsFactors = FALSE)
@@ -251,6 +254,7 @@ classify <- function(x, tree, threshold = 0.9, decay = TRUE, ping = TRUE,
     lhcols <- cbind(lhcols, rnkmat)
   }
   lhcols <- cbind(lhcols, qout, res[c("score", "reason", "path")])
+  lhcols$path <- as.character(lhcols$path)
   rownames(lhcols) <- NULL
   return(lhcols)
 }

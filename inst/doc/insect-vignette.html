@@ -11,7 +11,7 @@
 
 <meta name="author" content="Shaun Wilkinson" />
 
-<meta name="date" content="2018-06-25" />
+<meta name="date" content="2018-07-20" />
 
 <title>The insect R package and bioinformatic pipeline.</title>
 
@@ -93,6 +93,9 @@ img {
 .tabbed-pane {
   padding-top: 12px;
 }
+.html-widget {
+  margin-bottom: 20px;
+}
 button.code-folding-btn:focus {
   outline: none;
 }
@@ -123,7 +126,7 @@ $(document).ready(function () {
 <h1 class="title toc-ignore">The ‘insect’ R package and bioinformatic pipeline.</h1>
 <h3 class="subtitle"><em>Tutorial 1: reading and classifying NGS data.</em></h3>
 <h4 class="author"><em>Shaun Wilkinson</em></h4>
-<h4 class="date"><em>2018-06-25</em></h4>
+<h4 class="date"><em>2018-07-20</em></h4>
 
 </div>
 
@@ -702,7 +705,7 @@ kingdom
 </table>
 <p>The function produces a data frame with one row for each unique sequence, the first few rows of which are shown above. Assuming <code>ping</code> is set to <code>TRUE</code>, query sequences that have exact matches in the training dataset (and hence bypass the recursive classification procedure; e.g. <em>Terpios gelatinosus</em> above), are assigned a score of <code>NA</code>. For a more succinct output we can aggregate the table to show one row for each unique taxon as follows:</p>
 <pre><code>taxa &lt;- aggregate(longDF[3:10], longDF[&quot;taxID&quot;], head, 1)
-counts &lt;- aggregate(longDF[11:12], longDF[&quot;taxID&quot;], sum)
+counts &lt;- aggregate(longDF[seq(11, ncol(longDF) - 3)], longDF[&quot;taxID&quot;], sum)
 shortDF &lt;- merge(taxa, counts, by = &quot;taxID&quot;)</code></pre>
 <!-- note newlines needed between html tags and code chunk -->
 <table>
