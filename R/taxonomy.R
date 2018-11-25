@@ -51,6 +51,7 @@ get_lineage <- function(taxIDs, db, simplify = TRUE, numbers = FALSE, cores = 1)
     ## for backwards compatibility
   }
   gl1 <- function(taxID, db){
+    if(is.na(taxID)) return(NA)
     stopifnot(length(taxID) == 1 & mode(taxID) == "numeric")
     res <- if(numbers) integer(100) else character(100)
     resnames <- character(100)
@@ -175,7 +176,7 @@ get_taxID <- function(lineage, db, multimatch = NA){
 #'  \url{https://www.ncbi.nlm.nih.gov/taxonomy/}
 #' @examples
 #' \donttest{
-#'   db <- taxonomy()
+#'   # db <- taxonomy()
 #' }
 ################################################################################
 taxonomy <- function(db = "NCBI", synonyms = FALSE){

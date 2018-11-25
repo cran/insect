@@ -4,24 +4,29 @@
 \alias{learn}
 \title{Informatic sequence classification tree learning.}
 \usage{
-learn(x, db, model = NULL, refine = "Viterbi", iterations = 50,
-  nstart = 20, minK = 2, maxK = 2, minscore = 0.9, probs = 0.5,
-  retry = TRUE, resize = TRUE, maxsize = max(sapply(x, length)),
-  recursive = TRUE, cores = 1, quiet = TRUE, ...)
+learn(x, db = NULL, model = NULL, refine = "Viterbi",
+  iterations = 50, nstart = 20, minK = 2, maxK = 2,
+  minscore = 0.9, probs = 0.5, retry = TRUE, resize = TRUE,
+  maxsize = 1000, recursive = TRUE, cores = 1, quiet = FALSE,
+  verbose = FALSE, numcode = NULL, frame = NULL, ...)
 }
 \arguments{
-\item{x}{an object of class\code{"DNAbin"} representing a list of
-DNA sequences to be used as the training data for the tree-learning process.
+\item{x}{a reference database of class\code{"DNAbin"} representing a list of
+DNA sequences to be used as the training data.
 All sequences should be from the same genetic region of interest
 and be globally alignable (i.e. without unjustified end-gaps).
-The sequences must have "names" attributes that include
-taxonomic ID numbers corresponding with those in the taxonomy
+The sequences must have "names" attributes, either in RDP format
+(containing semicolon-delimited lineage strings),
+or that include taxonomic ID numbers corresponding with those in the taxonomy
 database \code{db} (separated from the sequence ID by a "|" character).
 For example: "AF296347|30962", "AF296346|8022", "AF296345|8017", etc.
 See \code{\link{searchGB}} for more details on creating the reference
-sequence database.}
+sequence database and \code{\link{taxonomy}} for the associated heirarchical
+taxonomic database.}
 
-\item{db}{a valid taxonomy database (as a data.frame object).
+\item{db}{a heirarchical taxonomy database in the form of a data.frame.
+Cannot be NULL unless training data is in RDP format
+(containing semicolon delimited lineage strings).
 The object should have
 four columns, labeled "taxID", "parent_taxID", "rank" and "name".
 The first two should be numeric, and all ID numbers in the
@@ -86,7 +91,7 @@ should be fixed. Defaults to TRUE. Only applicable if
 \code{refine = "Viterbi"}.}
 
 \item{maxsize}{integer giving the upper bound on the number of modules
-in the PHMMs. If NULL (default) no maximum size is enforced.}
+in the PHMMs. If NULL, no maximum size is enforced.}
 
 \item{recursive}{logical indicating whether the splitting process
 should continue recursively until the discrimination criteria
@@ -105,7 +110,13 @@ number of cores to use is one less than the total number of cores
 available.}
 
 \item{quiet}{logical indicating whether feedback should be printed
-to the console. Note that the output can be verbose.}
+to the console.}
+
+\item{verbose}{logical indicating whether extra feedback should be
+printed to the console, including progress at each split.}
+
+\item{numcode, frame}{passed to \code{\link[seqinr]{translate}}.
+Set to NULL (default) unless an amino acid sequence classifier is required.}
 
 \item{...}{further arguments to be passed on to \code{\link[aphid]{train}}).}
 }

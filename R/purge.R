@@ -29,7 +29,7 @@
 #'   of sequences to be processed, due to the extra time required to initialize
 #'   the cluster.
 #' @param quiet logical indicating whether progress should be printed to the console.
-#' @param ... further arguments to pass to \code{link[kmer]{otu}} (not including
+#' @param ... further arguments to pass to \code{\link[kmer]{otu}} (not including
 #'   \code{nstart}).
 #' @return a "DNAbin" object.
 #' @details This function first clusters the sequence dataset into operational
@@ -49,6 +49,7 @@
 ################################################################################
 purge <- function(x, db, level = "order", confidence = 0.8,
                   cores = 1, quiet = FALSE, ...){
+  db$rank <- tolower(db$rank)
   level <- tolower(level)
   if(is.null(attr(x, "OTU"))){
     if(!quiet) cat("Clustering OTUs\n")

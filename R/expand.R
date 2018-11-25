@@ -4,8 +4,6 @@
 #'   using more relaxed parameter settings than those used when the tree was
 #'   created, or if fine-scale control over the tree-learning operation
 #'   is required.
-#'   Note that the same reference sequence database used to
-#'   build the original tree is required.
 #'
 #' @param tree an object of class \code{"insect"}.
 #' @param clades a vector of character strings giving the binary indices
@@ -32,29 +30,71 @@
 #'   data(whales)
 #'   data(whale_taxonomy)
 #'   ## split the first node
-#'   tree <- learn(whales, db = whale_taxonomy, recursive = FALSE, quiet = FALSE)
+#'   set.seed(123)
+#'   tree <- learn(whales, db = whale_taxonomy, recursive = FALSE)
 #'   ## expand only the first clade
-#'   tree <- expand(tree, whales, clades = "1", quiet = TRUE)
+#'   tree <- expand(tree, clades = "1")
 #'  }
 ################################################################################
-expand <- function(tree, x, clades = "0", refine = "Viterbi", iterations = 50,
+expand <- function(tree, clades = "0", refine = "Viterbi", iterations = 50,
                    nstart = 20, minK = 2, maxK = 2, minscore = 0.9, probs = 0.5,
-                   retry = TRUE, resize = TRUE, maxsize = max(sapply(x, length)),
-                   recursive = TRUE, cores = 1, quiet = TRUE, ...){
+                   retry = TRUE, resize = TRUE, maxsize = 1000,
+                   recursive = TRUE, cores = 1, quiet = FALSE, verbose = FALSE,
+                   ...){
+  dots <- list(...)
+
+  if(is.null(attr(tree, "numcode"))){
+    x <- attr(tree, "trainingset")
+    pointers <- attr(x, "rerep.pointers")
+    xnames <- attr(x, "rerep.names")
+    lineages <- attr(x, "lineages") # same length as full set, includes full strings. can be null
+    kmers <- attr(tree, "kmers")
+    ksize <- attr(tree, "k")
+    if(is.null(kmers) | is.null(ksize)){
+      ksize <- if(is.null(dots$k)) 4 else dots$k
+      kmers <- .encodekc(kmer::kcount(x, k = ksize))
+    }else{
+      stopifnot(nrow(kmers) == length(x))
+    }
+  }else{ #amino classifier
+    if(is.null(attr(tree, "frame"))) stop("Error code 0227\n")
+    x <- attr(tree, "xaa")
+    if(is.null(x)){
+      x <- rereplicate(attr(tree, "trainingset"))
+      xlengths <- vapply(x, length, 0L, USE.NAMES = FALSE)
+      xrems <- xlengths %% 3
+      if(length(unique(xrems)) > 1) stop("Error code 3274\n")
+      x <- ape::as.character.DNAbin(x)
+      x <- lapply(x, seqinr::translate, numcode = attr(tree, "numcode"), frame = attr(tree, "frame"))
+      x <- ape::as.AAbin(x)
+      keeps <- sapply(x, function(v) !any(v == as.raw(42)))
+      if(any(!keeps)) stop("Error code 0442\n")
+      hashes <- hash(x)
+      xnames <- names(x)
+      pointers <- .point(hashes)
+      x <- x[!duplicated(hashes)]
+    }else{
+      pointers <- attr(x, "rerep.pointers")
+      xnames <- attr(x, "rerep.names")
+    }
+    lineages <- attr(attr(tree, "trainingset"), "lineages")
+    ksize <- 2
+    kmers <- .encodekc(kmer::kcount(x, k = ksize))
+  }
+  #attr(tree, "kmers") <- NULL ## replaced later
+
+  if(is.null(lineages)){
+    taxIDs <- as.integer(gsub(".+\\|", "", xnames))
+    lineages <- get_lineage(taxIDs, db = attr(tree, "taxonomy"), numbers = TRUE)
+    lineages <- vapply(lineages, paste0, "", collapse = "; ")
+  }
+  seqweights <- attr(x, "rerep.weights") # length of derep'd set
+  if(is.null(seqweights)) seqweights <- aphid::weight(x, k = if(is.null(attr(tree, "numcode"))) 5 else 2)
+
+  #seqweights <- NULL # assigned to .partition 20181024
+
   ## Establish which parts of the tree to expand
-  if(mode(x) == "character") x <- char2dna(x)
-  if(!grepl("\\|", names(x)[1])){
-    stop("Names of input sequences must include taxonomic ID numbers\n")
-  }
-  taxIDs <- as.integer(gsub(".+\\|", "", names(x)))
-  lineages <- get_lineage(taxIDs, db = attr(tree, "taxonomy"),
-                          cores = cores, numbers = TRUE)
-  lineages <- vapply(lineages, paste0, "", collapse = "; ")
-  # attr(x, "lineage") <- lineages
   clades <- gsub("0", "", clades)
-  if(!(identical(attr(tree, "sequences"), seq_along(x)))){
-    stop("tree is incompatible with sequences\n")
-  }
   indices <- gsub("([[:digit:]])", "[[\\1]]", clades)
   findnestedleaves <- function(node){
     if(!is.list(node) & is.null(attr(node, "lock"))){
@@ -83,42 +123,17 @@ expand <- function(tree, x, clades = "0", refine = "Viterbi", iterations = 50,
   clades <- unlist(allnestedleaves, use.names = FALSE)
   if(length(clades) == 0) return(tree)
   indices <- gsub("([[:digit:]])", "[[\\1]]", clades)
-  ## following lines are for trees that have been stripped of memory-intensive elements
-  if(!quiet) cat("Dereplicating sequences\n")
-  hashes <- attr(x, "hashes")
-  if(is.null(hashes)) hashes <- hash(x)
-  # attr(tree, "hashes") <- NULL
-  duplicates <- attr(x, "duplicates")
-  if(is.null(duplicates)) duplicates <- duplicated(hashes)
-  if(!quiet) cat("Found", sum(!duplicates), "unique sequences\n")
-  # attr(tree, "duplicates") <- NULL
-  pointers <- attr(x, "pointers")
-  if(is.null(pointers)) pointers <- .point(hashes)
-  seqweights <- attr(x, "weights")
-  if(is.null(seqweights)) seqweights <- aphid::weight(x, k = 5)
-  # attr(tree, "weights") <- NULL ## replaced later
-  # lineages <- gsub("\\.$", "", attr(x, "lineage"))
-  # lineages <- paste0(lineages, "; ", attr(x, "species"))
-  # lineages <- attr(x, "lineage")
-  # lineages <- paste0(lineages, "; ~", attr(x, "species"), "~")
-  x <- x[!duplicates]# strip attrs regardless of duplicates
+  duplicates <- duplicated(pointers)
   if(any(duplicates)){
-    # fullseqset <- x # needed??
-    # x <- x[!duplicates]  ## attributes not needed
     lineages <- sapply(split(lineages, pointers), .ancestor)
-    seqweights <- sapply(split(seqweights, pointers), sum)
-    ###
+    #seqweights <- sapply(split(seqweights, pointers), sum) ### removed 20181014
     rmduplicates <- function(node, whchunq, pointers){
       tmp <- attr(node, "sequences")[attr(node, "sequences") %in% whchunq]
       attr(node, "sequences") <- pointers[tmp]
       return(node)
     }
     tree <- dendrapply(tree, rmduplicates, which(!duplicates), pointers)
-    # if(nrow(distances) == nseq) distances <- distances[!duplicates, ]
-    # if(nrow(kmers) == nseq) kmers <- kmers[!duplicates, ]
-    # rm attrs, condensed version in final tree
-  }# else distances <- distances[ , ]
-
+  }
   ### set up multithread if required
   if(inherits(cores, "cluster")){
     ncores <- length(cores)
@@ -142,19 +157,21 @@ expand <- function(tree, x, clades = "0", refine = "Viterbi", iterations = 50,
       stopclustr <- TRUE
     }
   }
-  ## calculate k-mers once but only if run on single core
-  ## otherwise uses excessive memory (since this matrix can be > 1GB)
-  # kmers <- attr(tree, "kmers")
-  #if(is.null(kmers)) kmers <- kmer::mbed(x)
-  if(ncores == 1){
-    if(!quiet) cat("Counting k-mers\n")
-    kmers <- kmer::kcount(x, k = 5)/(sapply(x, length) - 4) #k - 1 = 4
-  # }else if(has_duplicates & nrow(kmers) == nseq & ncores = 1){
-  #   kmers <- kmers[!duplicates, ]
-  }else kmers <- NULL
-  # attr(tree, "kmers") <- NULL ## replaced later
+
+  # if(ncores == 1){
+  #   if(!quiet) cat("Counting k-mers\n")
+  #   dots <- list(...)
+  #   kmers <- kmer::kcount(x, k = if(is.null(dots$k)) 5 else dots$k)
+  #   kmers <- kmers/(sapply(x, length) - 4) #k - 1 = 4
+  # }else kmers <- NULL
+  # kmers <- NULL # need this if using partition to count kmers
+
   ## prev line commented to prevent k-mer stripping
   ### recursively split nodes
+  switchpoint <- max(round((length(x) * 0.8)/ncores), 50L)
+  if(switchpoint > 500L) switchpoint <- 500L
+  if(switchpoint < ncores * 4) switchpoint <- ncores * 4
+  ## switch from basal to terminal node recursion method
   if(ncores > 1 & recursive){
     #if(length(clades) < ncores){
     lockleaves <- function(node, exceptions){
@@ -183,7 +200,7 @@ expand <- function(tree, x, clades = "0", refine = "Viterbi", iterations = 50,
       if(is.list(node)) node[] <- lapply(node, fm1)
       return(node)
     }
-    if(!quiet) cat("Recursively splitting basal tree branches\n")
+    if(!quiet) cat("Recursively splitting basal tree nodes\n")
     repeat{
       nmembers <- integer(0)
       eligible <- logical(0)
@@ -191,15 +208,15 @@ expand <- function(tree, x, clades = "0", refine = "Viterbi", iterations = 50,
       rm(tmp)
       nmembers <- nmembers[eligible]
       # if(!any(eligible) | length(nmembers) >= 2 * ncores) break
-      if(!any(eligible) | all(nmembers < 50)) break
+      if(!any(eligible) | all(nmembers < switchpoint)) break
       whichclade <- names(nmembers)[which.max(nmembers)]
       index <- gsub("([[:digit:]])", "[[\\1]]", whichclade)
       toeval <- paste0("tree", index, "<- .fork(tree",
                        index, ", x, lineages, refine = refine, ",
                        "nstart = nstart, iterations = iterations, minK = minK, maxK = maxK, ",
                        "minscore = minscore, probs = probs, retry = retry, resize = resize, ",
-                       "maxsize = maxsize, kmers = kmers, seqweights = seqweights, ",
-                       "cores = cores, quiet = quiet, ... = ...)")
+                       "maxsize = maxsize, kmers = kmers, ksize = ksize, seqweights = seqweights, ",
+                       "cores = cores, quiet = quiet, verbose = verbose, ... = ...)")
       eval(parse(text = toeval))
       ss <- FALSE # split success; prevents build note due to lack of visible binding
       eval(parse(text = paste0("ss <- is.list(tree", index, ")")))
@@ -208,30 +225,31 @@ expand <- function(tree, x, clades = "0", refine = "Viterbi", iterations = 50,
     }
     clades <- names(nmembers)
     indices <- gsub("([[:digit:]])", "[[\\1]]", clades)
+    indices <- indices[.balance(nmembers, ncores)]
     rm(nmembers)
     rm(eligible)
-    #}
     trees <- vector(mode = "list", length = length(clades)) # = length(indices)
     for(i in seq_along(indices)){
       eval(parse(text = paste0("trees[[", i, "]] <- tree", indices[i])))
     }
     if(!quiet){
-      cat("Recursively splitting terminal tree branches\n")
-      cat("Feedback suppressed, this could take a while...\n")
+      cat("Recursively splitting terminal tree nodes\n")
+      if(verbose) cat("Feedback suppressed, this could take a while...\n")
     }
     trees <- parallel::parLapply(cores, trees, .forkr, x, lineages, refine = refine,
                                  nstart = nstart, iterations = iterations,
                                  minK = minK, maxK = maxK, minscore = minscore,
                                  probs = probs, retry = retry, resize = resize,
                                  maxsize = maxsize,
-                                 kmers = kmers, # large matrix could cause memory probs
-                                 seqweights = seqweights, cores = 1,
+                                 kmers = kmers, ksize = ksize, # large matrix could cause memory probs
+                                 seqweights = seqweights,
+                                 cores = 1,
                                  quiet = TRUE, ... = ...)
     for(i in seq_along(trees)){
       eval(parse(text = paste0("tree", indices[i], "<- trees[[", i, "]]")))
-      trees[[i]] <- NA
-      gc()
     }
+    rm(trees)
+    gc()
   }else{
     indices <- gsub("([[:digit:]])", "[[\\1]]", clades)
     for(i in seq_along(indices)){
@@ -240,14 +258,14 @@ expand <- function(tree, x, clades = "0", refine = "Viterbi", iterations = 50,
                        indices[i], ", x, lineages, refine = refine, nstart = nstart, ",
                        "iterations = iterations, minK = minK, maxK = maxK, ",
                        "minscore = minscore, probs = probs, retry = retry, resize = resize, ",
-                       "maxsize = maxsize, kmers = kmers, seqweights = seqweights, ",
-                       "cores = cores, quiet = quiet, ... = ...)")
+                       "maxsize = maxsize, kmers = kmers, ksize = ksize, seqweights = seqweights, ",
+                       "cores = cores, quiet = quiet, verbose = verbose, ... = ...)")
       eval(parse(text = toeval))
     }
   }
   if(stopclustr) parallel::stopCluster(cores)
   ### remove kmers since can be memory hungry, prevent next operations
-  rm(kmers)
+  #rm(kmers)
   gc()
   ### fix midpoints, members, heights and leaf integers
   ### note changes here also apply to 'learn' function
@@ -275,8 +293,11 @@ expand <- function(tree, x, clades = "0", refine = "Viterbi", iterations = 50,
   }
   tree <- dendrapply(tree, encodemods) # more memory efficient
   truncatetaxIDs <- function(node){
-    attr(node, "taxID") <- as.integer(gsub(".+; ", "", attr(node, "lineage")))
-    attr(node, "lineage") <- NULL
+    if(is.null(attr(node, "taxID"))){ # in case tree manually expanded
+      stopifnot(!is.null(attr(node, "lineage")))
+      attr(node, "taxID") <- as.integer(gsub(".+; ", "", attr(node, "lineage")))
+      attr(node, "lineage") <- NULL
+    }
     return(node)
   }
   tree <- dendrapply(tree, truncatetaxIDs) # more memory efficient
@@ -284,7 +305,9 @@ expand <- function(tree, x, clades = "0", refine = "Viterbi", iterations = 50,
   # attributes(x) <- tmpxattr
   if(!quiet) cat("Resetting node heights\n")
   tree <- phylogram::reposition(tree)
-  if(!quiet) cat("Done\n")
+  #attr(tree, "kmers") <- kmers # can no longer do this due to temporary AA kmers
+  rm(kmers)
+  rm(x)
   class(tree) <- c("insect", "dendrogram")
   return(tree)
 }
