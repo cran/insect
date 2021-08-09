@@ -53,10 +53,10 @@
 #'   recursion process to continue.
 #'   At any given node, if the \emph{n}th percentile of Akaike weights
 #'   falls below this threshold, the recursion process for the node will
-#'   terminate. As an example, if \code{minscore = 0.9} and
+#'   terminate. As an example, if \code{minscore = 0.95} and
 #'   \code{probs = 0.5} (the default settings), and after generating two
 #'   candidate PHMMs to occupy the candidate subnodes the median
-#'   of Akaike weights is 0.89, the splitting process will
+#'   Akaike weight is less than 0.95, the splitting process will
 #'   terminate and the function will simply return the unsplit root node.
 #' @param probs numeric between 0 and 1. The percentile of Akaike weights
 #'   to test against the minimum score threshold given in \code{"minscore"}.
@@ -76,9 +76,7 @@
 #'   should continue recursively until the discrimination criteria
 #'   are not met (TRUE; default), or whether a single split should
 #'   take place at the root node.
-#' @param cores integer giving the number of CPUs to use
-#'   when training the models (only applicable if
-#'   \code{refine = 'Viterbi'}). Defaults to 1.
+#' @param cores integer giving the number processors for multithreading. Defaults to 1.
 #'   This argument may alternatively be a 'cluster' object,
 #'   in which case it is the user's responsibility to close the socket
 #'   connection at the conclusion of the operation,
@@ -91,7 +89,7 @@
 #' @param verbose logical indicating whether extra feedback should be
 #'   printed to the console, including progress at each split.
 #' @param numcode,frame passed to \code{\link[seqinr]{translate}}.
-#'   Set to NULL (default) unless an amino acid sequence classifier is required.
+#'   Set to NULL (default) unless learning a hybrid DNA/amino acid sequence classifier.
 #' @param ... further arguments to be passed on to \code{\link[aphid]{train}}).
 #' @return an object of class \code{"insect"}.
 #' @details The "insect" object type is a dendrogram
@@ -152,8 +150,8 @@
 #' }
 ################################################################################
 learn <- function(x, db = NULL, model = NULL, refine = "Viterbi", iterations = 50,
-                  nstart = 20, minK = 2, maxK = 2, minscore = 0.9, probs = 0.5,
-                  retry = TRUE, resize = TRUE, maxsize = 1000,
+                  nstart = 20, minK = 2, maxK = 2, minscore = 0.95, probs = 0.5,
+                  retry = FALSE, resize = TRUE, maxsize = 1000,
                   recursive = TRUE, cores = 1, quiet = FALSE, verbose = FALSE,
                   numcode = NULL, frame = NULL, ...){
 

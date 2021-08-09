@@ -1,4 +1,57 @@
 # Internal 'insect' functions
+
+#' @noRd
+.get_taxIDs_NCBI <- function(accs){
+  f <- rep(1:10000, each = 100)
+  f <- f[seq_along(accs)]
+  accs <- split(accs, f = f)
+  gta <- function(acs){
+    URL1 <- paste0("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/",
+                   "epost.fcgi?db=nuccore&id=",
+                   paste0(acs, collapse = ",")
+    )
+    X <- .scanURL(URL1)
+    WebEnv <- xml2::xml_text(xml2::xml_find_first(X, "WebEnv"))
+    QueryKey <- xml2::xml_text(xml2::xml_find_first(X, "QueryKey"))
+    URL2 <- paste0("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/",
+                   "efetch.fcgi?",
+                   "db=nuccore",
+                   "&WebEnv=", WebEnv,
+                   "&query_key=", QueryKey,
+                   "&rettype=docsum",
+                   "&retmode=xml")
+    tmpf <- tempfile(fileext = ".xml")
+
+    dlf <- function(u, destfile, quiet = TRUE){
+      errfun <- function(er){
+        warning("error 745")
+        return(NULL)
+      }
+      res <- tryCatch(download.file(u, destfile = destfile, quiet = quiet), error = errfun, warning = errfun)
+      return(res)
+    }
+    for(l in 1:10){
+      res <- dlf(URL2, destfile = tmpf, quiet = TRUE)
+      if(!is.null(res)) break else Sys.sleep(1)
+    }
+    # dlf(URL2, destfile = tmpf, quiet = TRUE)
+    tmp <- scan(tmpf, what = "", sep = "\n", quiet = TRUE)
+    acclines <- grep("\t<Item Name=\"Caption\" Type=\"String\">.+</Item>", tmp)
+    stopifnot(length(acclines) > 0L)
+    acs <- sub("\t<Item Name=\"Caption\" Type=\"String\">(.+)</Item>", "\\1", tmp[acclines])
+    taxidlines <- grep("\t<Item Name=\"TaxId\" Type=\"Integer\">[[:digit:]]+</Item>", tmp)
+    taxids <- sub("\t<Item Name=\"TaxId\" Type=\"Integer\">([[:digit:]]+)</Item>", "\\1", tmp[taxidlines])
+    taxids <- as.integer(taxids)
+    names(taxids) <- acs
+    return(taxids)
+  }
+  for(i in seq_along(accs)) accs[[i]] <- gta(accs[[i]])
+  names(accs) <- NULL
+  res <- unlist(accs, use.names = TRUE)
+  return(res)
+}
+
+
 #' @noRd
 .qual2char <- function(x){
   if(is.null(x)) return(NULL) # needed for dna2char
@@ -25,7 +78,7 @@
 ## x is a DNAbin object - should not contain duplicates, must have lineage attrs
 .forkr <- function(tree, x, lineages, refine = "Viterbi", nstart = 10,
                    iterations = 50, minK = 2, maxK = 2,
-                   minscore = 0.9, probs = 0.05, retry = TRUE, resize = TRUE,
+                   minscore = 0.95, probs = 0.05, retry = FALSE, resize = TRUE,
                    maxsize = NULL, kmers = NULL, ksize = NULL, seqweights = NULL,
                    cores = 1, quiet = FALSE, ...){
   tree <- .fork(tree, x, lineages, refine = refine, nstart = nstart,
@@ -92,7 +145,6 @@
 .scanURL <- function(x, retmode = "xml", ...){
   scanURL <- function(z, retmode = "xml", ...){
     errfun <- function(er){
-      closeAllConnections()
       return(NULL)
     }
     res <- tryCatch(if(retmode == "xml") xml2::read_xml(z, ... = ...) else
@@ -109,7 +161,6 @@
     tmpf <- tempfile()
     cat(tmp, file = tmpf, sep = "\n")
     errfun <- function(er){
-      closeAllConnections()
       return(NULL)
     }
     res <- tryCatch(if(retmode == "xml") xml2::read_xml(tmpf, ... = ...) else
@@ -130,7 +181,7 @@
   if(lineages) res$lins <- xml2::xml_text(xml2::xml_find_all(x, "GBSeq_taxonomy"))
   if(taxIDs){
     feattab <- xml2::xml_text(xml2::xml_find_all(x, "GBSeq_feature-table"))
-    res$taxs <- gsub(".+taxon:([[:digit:]]+).+", "\\1", feattab)
+    res$taxs <- gsub(".+taxon:([[:digit:]]+).*", "\\1", feattab)
   }
   if(!all(sapply(res, length) == length(res[[1]]))) res <- NULL
   return(res)

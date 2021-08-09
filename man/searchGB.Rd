@@ -4,9 +4,17 @@
 \alias{searchGB}
 \title{Query the NCBI GenBank database.}
 \usage{
-searchGB(query = NULL, accession = NULL, sequences = TRUE,
-  bin = TRUE, db = "nucleotide", taxIDs = TRUE, prompt = TRUE,
-  contact = NULL, quiet = FALSE)
+searchGB(
+  query = NULL,
+  accession = NULL,
+  sequences = TRUE,
+  bin = TRUE,
+  db = "nucleotide",
+  taxIDs = TRUE,
+  prompt = TRUE,
+  contact = NULL,
+  quiet = FALSE
+)
 }
 \arguments{
 \item{query}{an Entrez search query. For help compiling Entrez queries see
@@ -64,7 +72,7 @@ This function uses the Entrez e-utilities API to search and download
   and appears to be related to database records being updated in GenBank.
   This can generally be remedied by re-running the function. If problems
   persist please feel free to raise an issue on the package bug-reports page at
-  <http://github.com/shaunpwilkinson/insect/issues>.
+  <https://github.com/shaunpwilkinson/insect/issues/>.
 }
 \examples{
   ## Query the GenBank database for Eukaryote mitochondrial 16S DNA sequences

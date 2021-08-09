@@ -33,8 +33,8 @@
 #'   Defaults to 0.02.
 #' @param partialbind logical indicating whether partial primer matching is
 #'   accepted. Defaults to TRUE.
-#' @param cores integer giving the number of CPUs to parallelize the operation
-#'   over. Defaults to 1, and reverts to 1 if x is not a list.
+#' @param cores integer giving the number of processors for multithreading.
+#'   Defaults to 1, and reverts to 1 if x is not a list.
 #'   This argument may alternatively be a 'cluster' object,
 #'   in which case it is the user's responsibility to close the socket
 #'   connection at the conclusion of the operation,
@@ -63,12 +63,24 @@ virtualPCR <- function(x, up, down = NULL, rcdown = TRUE, trimprimers = FALSE,
                        quiet = FALSE){
   ischar <- mode(x) == "character"
   if(ischar) x <- char2dna(x)
+  xc <- dna2char(x)
   if(mode(up) == "character"){
     up <- char2dna(up)[[1]]
     if(!is.null(down)) down <- char2dna(down)[[1]]
   }
   nseq <- length(x)
   if(nseq == 0) stop("No sequences provided\n")
+  ## speed up by exact trimming for long seqs
+  if(!is.null(down)){
+    upc <- dna2char(up)
+    dnc <- dna2char(down)
+    if(rcdown) dnc <- rc(dnc)
+    upc <- disambiguate(upc)
+    dnc <- disambiguate(dnc)
+    pattern <- paste0(".*(", upc, ".+", dnc, ").*")
+    xc <- sub(pattern, "\\1", xc)
+    x <- char2dna(xc)
+  }
   if(!quiet) cat("Started with", nseq, "sequences\n")
   if(inherits(cores, "cluster")){
     para <- TRUE
@@ -104,7 +116,10 @@ virtualPCR <- function(x, up, down = NULL, rcdown = TRUE, trimprimers = FALSE,
           zeroonestarts2 <- match(0:1, rev(vit$path))
           zeroonestarts2 <- zeroonestarts2[!is.na(zeroonestarts2)]
           tokeep <- min(zeroonestarts2) - 1
-          if(tokeep > 0) s <- rev(rev(s)[1:tokeep]) else return(NULL)
+          if(tokeep > 0) s <- rev(rev(s)[1:tokeep]) else {##################################
+            #cat("wtf?")
+            return(NULL)
+            }
         }
         if(length(s) < minamplen) return(NULL)
         attr(s, "forscore") <- vit$score
@@ -132,7 +147,7 @@ virtualPCR <- function(x, up, down = NULL, rcdown = TRUE, trimprimers = FALSE,
     attributes(x) <- tmpattr
     attr(x, "forscores") <- forscores
   }else{
-    cat("None of the sequences met forward primer specificity criteria\n")
+    if(!quiet) cat("None of the sequences met forward primer specificity criteria\n")
     x <- NULL # cant return yet since cluster is still open
   }
   # trim all nucleotides to right of reverse primer bind site, including primer if specified
@@ -151,13 +166,17 @@ virtualPCR <- function(x, up, down = NULL, rcdown = TRUE, trimprimers = FALSE,
             zeroonestarts2 <- match(0:1, vit$path)
             zeroonestarts2 <- zeroonestarts2[!is.na(zeroonestarts2)]
             tokeep <- min(zeroonestarts2) - 1
-            if(tokeep > 0) s <- s[1:tokeep] else return(NULL)
+            if(tokeep > 0) s <- s[1:tokeep] else {
+
+              return(NULL)}
           }
           if(length(s) >= minamplen & length(s) <= maxamplen) {
             attr(s, "revscore") <- vit$score
             return(s)
           }
         }
+      }else{
+        ###cat("wtf?")
       }
       return(NULL)
     }

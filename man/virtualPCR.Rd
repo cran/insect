@@ -4,9 +4,21 @@
 \alias{virtualPCR}
 \title{Virtual PCR.}
 \usage{
-virtualPCR(x, up, down = NULL, rcdown = TRUE, trimprimers = FALSE,
-  minfsc = 50, minrsc = 50, minamplen = 50, maxamplen = 2000,
-  maxNs = 0.02, partialbind = TRUE, cores = 1, quiet = FALSE)
+virtualPCR(
+  x,
+  up,
+  down = NULL,
+  rcdown = TRUE,
+  trimprimers = FALSE,
+  minfsc = 50,
+  minrsc = 50,
+  minamplen = 50,
+  maxamplen = 2000,
+  maxNs = 0.02,
+  partialbind = TRUE,
+  cores = 1,
+  quiet = FALSE
+)
 }
 \arguments{
 \item{x}{a list of DNA sequences in \code{DNAbin} format.}
@@ -47,8 +59,8 @@ Defaults to 0.02.}
 \item{partialbind}{logical indicating whether partial primer matching is
 accepted. Defaults to TRUE.}
 
-\item{cores}{integer giving the number of CPUs to parallelize the operation
-over. Defaults to 1, and reverts to 1 if x is not a list.
+\item{cores}{integer giving the number of processors for multithreading.
+Defaults to 1, and reverts to 1 if x is not a list.
 This argument may alternatively be a 'cluster' object,
 in which case it is the user's responsibility to close the socket
 connection at the conclusion of the operation,

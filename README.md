@@ -13,7 +13,7 @@ cost.
 
 The package also contains functions for searching and downloading
 reference sequences and taxonomic information from NCBI, a "virtual PCR"
-tool for sequence trimming, a function for "purging" erroneously labeled
+tool for sequence trimming, a function for purging erroneously labeled
 reference sequences, and several other tools.
 
 `insect` is designed to be used in conjunction with the
@@ -40,8 +40,8 @@ To download the latest development version from GitHub, run:
 
 ### Classifying sequences
 
-Classifiers for some of the more common metabarcoding primer sets are
-available here:
+Classifiers for some of the more commonly used metabarcoding primer sets
+are available here:
 
 <!-- note newlines needed between html tags and code chunk -->
 <table>
@@ -60,7 +60,7 @@ available here:
 <tr class="odd">
 <td align="left">12S</td>
 <td align="left">Fish</td>
-<td align="left">MiFishUF/MiFishUR (<a href="https://www.ncbi.nlm.nih.gov/pubmed/26587265">Miya et al 2015</a>)</td>
+<td align="left">MiFishUF/MiFishUR (<a href="https://pubmed.ncbi.nlm.nih.gov/26587265/">Miya et al 2015</a>)</td>
 <td align="left">GenBank</td>
 <td align="right">1</td>
 <td align="right">20181111</td>
@@ -87,7 +87,7 @@ available here:
 <tr class="even">
 <td align="left">18S</td>
 <td align="left">Marine eukaryotes</td>
-<td align="left">18S_1F/18S_400R (<a href="https://www.ncbi.nlm.nih.gov/pubmed/24023913">Pochon et al 2017</a>)</td>
+<td align="left">18S_1F/18S_400R (<a href="https://pubmed.ncbi.nlm.nih.gov/24023913/">Pochon et al 2017</a>)</td>
 <td align="left">SILVA_132_LSUParc, GenBank</td>
 <td align="right">5</td>
 <td align="right">20180709</td>
@@ -96,7 +96,7 @@ available here:
 <tr class="odd">
 <td align="left">18S</td>
 <td align="left">Marine eukaryotes</td>
-<td align="left">18S_V4F/18S_V4R (<a href="https://www.ncbi.nlm.nih.gov/pubmed/28947818">Stat et al 2017</a>)</td>
+<td align="left">18S_V4F/18S_V4R (<a href="https://pubmed.ncbi.nlm.nih.gov/28947818/">Stat et al 2017</a>)</td>
 <td align="left">GenBank</td>
 <td align="right">4</td>
 <td align="right">20180525</td>
@@ -123,7 +123,7 @@ available here:
 <tr class="even">
 <td align="left">ITS2</td>
 <td align="left">Cnidarians and sponges</td>
-<td align="left">scl58SF/scl28SR (<a href="https://www.dropbox.com/s/6hcs1goju60wqi4/README.txt?dl=1">Wilkinson et al in prep</a>)</td>
+<td align="left">scl58SF/scl28SR (Wilkinson et al in prep)</td>
 <td align="left">GenBank</td>
 <td align="right">5</td>
 <td align="right">20180920</td>
@@ -208,7 +208,7 @@ considered matches).
 <td align="right">2806</td>
 <td align="left">Florideophyceae</td>
 <td align="left">class</td>
-<td align="right">0.9972</td>
+<td align="right">0.9981</td>
 <td align="left"></td>
 <td align="left"></td>
 <td align="left">Florideophyceae</td>
@@ -236,7 +236,7 @@ considered matches).
 <td align="right">2806</td>
 <td align="left">Florideophyceae</td>
 <td align="left">class</td>
-<td align="right">0.9760</td>
+<td align="right">0.9989</td>
 <td align="left"></td>
 <td align="left"></td>
 <td align="left">Florideophyceae</td>
@@ -250,7 +250,7 @@ considered matches).
 <td align="right">2172821</td>
 <td align="left">Multicrustacea</td>
 <td align="left">superclass</td>
-<td align="right">0.9999</td>
+<td align="right">1.0000</td>
 <td align="left">Metazoa</td>
 <td align="left">Arthropoda</td>
 <td align="left"></td>
@@ -278,7 +278,7 @@ considered matches).
 <td align="right">2806</td>
 <td align="left">Florideophyceae</td>
 <td align="left">class</td>
-<td align="right">0.9975</td>
+<td align="right">0.9981</td>
 <td align="left"></td>
 <td align="left"></td>
 <td align="left">Florideophyceae</td>
@@ -292,7 +292,7 @@ considered matches).
 <td align="right">39820</td>
 <td align="left">Nereididae</td>
 <td align="left">family</td>
-<td align="right">0.9784</td>
+<td align="right">1.0000</td>
 <td align="left">Metazoa</td>
 <td align="left">Annelida</td>
 <td align="left">Polychaeta</td>
@@ -306,7 +306,7 @@ considered matches).
 <td align="right">116571</td>
 <td align="left">Podoplea</td>
 <td align="left">superorder</td>
-<td align="right">0.9442</td>
+<td align="right">0.9995</td>
 <td align="left">Metazoa</td>
 <td align="left">Arthropoda</td>
 <td align="left">Hexanauplia</td>
@@ -320,7 +320,7 @@ considered matches).
 <td align="right">2806</td>
 <td align="left">Florideophyceae</td>
 <td align="left">class</td>
-<td align="right">0.8400</td>
+<td align="right">0.9482</td>
 <td align="left"></td>
 <td align="left"></td>
 <td align="left">Florideophyceae</td>
@@ -348,7 +348,7 @@ considered matches).
 <td align="right">115834</td>
 <td align="left">Hesionidae</td>
 <td align="left">family</td>
-<td align="right">0.8863</td>
+<td align="right">1.0000</td>
 <td align="left">Metazoa</td>
 <td align="left">Annelida</td>
 <td align="left">Polychaeta</td>
@@ -359,10 +359,10 @@ considered matches).
 </tr>
 <tr class="even">
 <td align="left">ASV12</td>
-<td align="right">2806</td>
-<td align="left">Florideophyceae</td>
-<td align="left">class</td>
-<td align="right">0.9769</td>
+<td align="right">1443949</td>
+<td align="left">Corallinophycidae</td>
+<td align="left">subclass</td>
+<td align="right">0.9910</td>
 <td align="left"></td>
 <td align="left"></td>
 <td align="left">Florideophyceae</td>
@@ -376,7 +376,7 @@ considered matches).
 <td align="right">33213</td>
 <td align="left">Bilateria</td>
 <td align="left">no rank</td>
-<td align="right">0.9420</td>
+<td align="right">1.0000</td>
 <td align="left">Metazoa</td>
 <td align="left"></td>
 <td align="left"></td>
@@ -404,7 +404,7 @@ considered matches).
 <td align="right">2806</td>
 <td align="left">Florideophyceae</td>
 <td align="left">class</td>
-<td align="right">0.9692</td>
+<td align="right">0.9993</td>
 <td align="left"></td>
 <td align="left"></td>
 <td align="left">Florideophyceae</td>
@@ -433,7 +433,7 @@ considered matches).
 ### Further reading
 
 A more detailed overview of the package and its functions can be found
-[here](https://rpubs.com/shaunpwilkinson/insect) or by running
+[here](https://rpubs.com/shaunpwilkinson/insect/) or by running
 
     vignette("insect-vignette")
 
@@ -441,11 +441,11 @@ A more detailed overview of the package and its functions can be found
 
 If you experience a problem using this software please feel free to
 raise it as an issue on
-[GitHub](http://github.com/shaunpwilkinson/insect/issues).
+[GitHub](https://github.com/shaunpwilkinson/insect/issues/).
 
 ### Acknowledgements
 
 This software was developed at [Victoria University of
-Wellington](http://www.victoria.ac.nz/) with funding from a Rutherford
+Wellington](https://www.wgtn.ac.nz/) with funding from a Rutherford
 Foundation Postdoctoral Research Fellowship award from the Royal Society
-of New Zealand. Unpublished COI data care of Molly Timmers (NOAA)
+of New Zealand. Unpublished COI data care of Molly Timmers (NOAA).

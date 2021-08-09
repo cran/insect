@@ -16,8 +16,7 @@
 #'   For example, if \code{confidence = 0.8} (the default value) a sequence will only be
 #'   purged if its taxonomy differs from at least four other independent sequences
 #'   in its cluster.
-#' @param cores integer giving the number of CPUs to parallelize the operation
-#'   over. Defaults to 1.
+#' @param cores integer giving the number of processors for multithreading. Defaults to 1.
 #'   This argument may alternatively be a 'cluster' object,
 #'   in which case it is the user's responsibility to close the socket
 #'   connection at the conclusion of the operation,
@@ -51,6 +50,7 @@ purge <- function(x, db, level = "order", confidence = 0.8,
                   cores = 1, quiet = FALSE, ...){
   db$rank <- tolower(db$rank)
   level <- tolower(level)
+  stopifnot(level %in% db$rank)
   if(is.null(attr(x, "OTU"))){
     if(!quiet) cat("Clustering OTUs\n")
     otus <- kmer::otu(x, nstart = 20, ... = ...)

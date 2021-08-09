@@ -4,10 +4,25 @@
 \alias{expand}
 \title{Expand an existing classification tree.}
 \usage{
-expand(tree, clades = "0", refine = "Viterbi", iterations = 50,
-  nstart = 20, minK = 2, maxK = 2, minscore = 0.9, probs = 0.5,
-  retry = TRUE, resize = TRUE, maxsize = 1000, recursive = TRUE,
-  cores = 1, quiet = FALSE, verbose = FALSE, ...)
+expand(
+  tree,
+  clades = "0",
+  refine = "Viterbi",
+  iterations = 50,
+  nstart = 20,
+  minK = 2,
+  maxK = 2,
+  minscore = 0.9,
+  probs = 0.5,
+  retry = TRUE,
+  resize = TRUE,
+  maxsize = 1000,
+  recursive = TRUE,
+  cores = 1,
+  quiet = FALSE,
+  verbose = FALSE,
+  ...
+)
 }
 \arguments{
 \item{tree}{an object of class \code{"insect"}.}
@@ -45,10 +60,10 @@ the value given in \code{"probs"}, for the node to be split and the
 recursion process to continue.
 At any given node, if the \emph{n}th percentile of Akaike weights
 falls below this threshold, the recursion process for the node will
-terminate. As an example, if \code{minscore = 0.9} and
+terminate. As an example, if \code{minscore = 0.95} and
 \code{probs = 0.5} (the default settings), and after generating two
 candidate PHMMs to occupy the candidate subnodes the median
-of Akaike weights is 0.89, the splitting process will
+Akaike weight is less than 0.95, the splitting process will
 terminate and the function will simply return the unsplit root node.}
 
 \item{probs}{numeric between 0 and 1. The percentile of Akaike weights
@@ -74,9 +89,7 @@ should continue recursively until the discrimination criteria
 are not met (TRUE; default), or whether a single split should
 take place at each of the nodes specified in \code{clades}.}
 
-\item{cores}{integer giving the number of CPUs to use
-when training the models (only applicable if
-\code{refine = 'Viterbi'}). Defaults to 1.
+\item{cores}{integer giving the number processors for multithreading. Defaults to 1.
 This argument may alternatively be a 'cluster' object,
 in which case it is the user's responsibility to close the socket
 connection at the conclusion of the operation,

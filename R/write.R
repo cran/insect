@@ -15,6 +15,9 @@
 #'   If file = "" (default setting) the text file is written to the
 #'   console.
 #' @param compress logical indicating whether the output file should be gzipped.
+#' @param append logical indicating whether the output should be appended to the file.
+#' @param wrap integer giving the maximum number of characters on each sequence line.
+#'   Defaults to NULL (no wrapping).
 #' @return NULL (invisibly).
 #' @author Shaun Wilkinson
 #' @references
@@ -45,17 +48,17 @@
 #'  }
 #' @name write
 ################################################################################
-writeFASTQ <- function(x, file = "", compress = FALSE){
+writeFASTQ <- function(x, file = "", compress = FALSE, append = FALSE){
   if(.isDNA(x)) x <- dna2char(x)
   if(is.null(attr(x, "quality"))) stop("Sequences are missing quality attributes\n")
   reslen <- length(x) * 4
   res <- character(reslen)
-  res[seq(1, reslen, by = 4)] <- paste0("@", names(x))
-  res[seq(2, reslen, by = 4)]  <- x
-  res[seq(3, reslen, by = 4)]  <- rep("+", length(x))
-  res[seq(4, reslen, by = 4)]  <- attr(x, "quality")
-  f <- if(compress) gzfile(file, "w") else file(file, "w")
-  writeLines(res, f)
+  res[seq(1, reslen, by = 4)] <- if(grepl("^@", names(x)[1])) names(x) else paste0("@", names(x))
+  res[seq(2, reslen, by = 4)] <- x
+  res[seq(3, reslen, by = 4)] <- rep("+", length(x))
+  res[seq(4, reslen, by = 4)] <- attr(x, "quality")
+  f <- if(compress) gzfile(file, if(append) "a" else "w") else file(file, if(append) "a" else "w")
+  write(res, f, append = append)
   close(f)
   invisible(NULL)
   # cat(res, file = file, sep = "\n", ... = ...)
@@ -63,7 +66,7 @@ writeFASTQ <- function(x, file = "", compress = FALSE){
 ################################################################################
 #' @rdname write
 ################################################################################
-writeFASTA <- function(x, file = "", compress = FALSE){
+writeFASTA <- function(x, file = "", compress = FALSE, append = FALSE, wrap = NULL){
   isDNA <- .isDNA(x)
   isAA <- .isAA(x)
   if(!is.null(dim(x))){ # convert from matrix to list while retaining gaps
@@ -84,8 +87,26 @@ writeFASTA <- function(x, file = "", compress = FALSE){
   res <- character(reslen)
   res[seq(1, reslen, by = 2)] <- paste0(">", names(tmp))
   res[seq(2, reslen, by = 2)] <- tmp
-  f <- if(compress) gzfile(file, "w") else file(file, "w")
-  writeLines(res, f)
+  if(!is.null(wrap)){
+    if(mode(wrap) == "integer") stop("wrap must be an integer")
+    if(wrap == 0) stop("wrap must be more than zero")
+
+    wrapfun <- function(s, wrap){ # character vector length 1
+      nrows <- ceiling(nchar(s)/wrap)
+      if(nrows == 1L) return(s)
+      f <- rep(1:nrows, each = wrap)
+      f <- f[seq_len(nchar(s))]
+      spl <- split(strsplit(s, split = "")[[1]], f)
+      spl <- vapply(spl, paste0, "", collapse = "", USE.NAMES = F)
+      return(spl)
+    }
+    res <- as.list(res)
+    res[seq(2, reslen, by = 2)] <- lapply(res[seq(2, reslen, by = 2)], wrapfun, wrap = wrap)
+    res <- unlist(res, recursive = TRUE, use.names = FALSE)
+  }
+  #f <- if(compress) gzfile(file, "w") else file(file, "w")
+  f <- if(compress) gzfile(file, if(append) "a" else "w") else file(file, if(append) "a" else "w")
+  write(res, f, append = append)
   close(f)
   invisible(NULL)
   #cat(res, file = file, sep = "\n", ... = ...)

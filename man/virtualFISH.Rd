@@ -4,10 +4,21 @@
 \alias{virtualFISH}
 \title{Virtual \emph{in situ} hybridization.}
 \usage{
-virtualFISH(x, probe, minscore = 100, minamplen = 50,
-  maxamplen = 500, up = NULL, down = NULL, rcdown = TRUE,
-  minfsc = 60, minrsc = 60, maxNs = 0.02, cores = 1,
-  quiet = FALSE)
+virtualFISH(
+  x,
+  probe,
+  minscore = 100,
+  minamplen = 50,
+  maxamplen = 500,
+  up = NULL,
+  down = NULL,
+  rcdown = TRUE,
+  minfsc = 60,
+  minrsc = 60,
+  maxNs = 0.02,
+  cores = 1,
+  quiet = FALSE
+)
 }
 \arguments{
 \item{x}{a list of DNA sequences in \code{DNAbin} format.}
@@ -44,8 +55,8 @@ a sequence for that sequence to be retained.}
 of the ambiguous residue "N" within the output sequences.
 Defaults to 0.02.}
 
-\item{cores}{integer giving the number of CPUs to parallelize the operation
-over. Defaults to 1, and reverts to 1 if \code{x} is not a list.
+\item{cores}{integer giving the number of processors for multithreading.
+Defaults to 1, and reverts to 1 if \code{x} is not a list.
 This argument may alternatively be a 'cluster' object,
 in which case it is the user's responsibility to close the socket
 connection at the conclusion of the operation,
